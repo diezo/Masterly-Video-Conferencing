@@ -1,0 +1,12 @@
+.candidate-video {
+    width: 300px;
+    height: 230px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin: 5px;
+}
+
+.self-video {
+    border: 5px solid #1852b7;
+    transform: scaleX(-1);
+}

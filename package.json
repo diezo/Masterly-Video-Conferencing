@@ -1,0 +1,33 @@
+{
+  "name": "masterly-mediasoup",
+  "version": "1.0.0",
+  "description": "A Low-Bandwidth Video Conferencing Platform",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/diezo/Masterly-Video-Conferencing.git"
+  },
+  "keywords": [
+    "mediasoup",
+    "webrtc",
+    "nodejs",
+    "javascript"
+  ],
+  "author": "Deepak Soni",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/diezo/Masterly-Video-Conferencing/issues"
+  },
+  "homepage": "https://github.com/diezo/Masterly-Video-Conferencing#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "mediasoup": "^3.19.19",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
