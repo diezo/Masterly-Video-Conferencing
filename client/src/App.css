@@ -1,12 +1,42 @@
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+#root, html, body {
+    width: 100vw;
+    height: 100vh;
+}
+
+#main {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+.candidate-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    justify-content: center;
+}
+
 .candidate-video {
-    width: 300px;
-    height: 230px;
+    width: 270px;
+    height: 270px;
     object-fit: cover;
-    border-radius: 8px;
+    border-radius: 20px;
     margin: 5px;
 }
 
 .self-video {
-    border: 5px solid #1852b7;
+    border: 10px solid #2964ca;
     transform: scaleX(-1);
 }

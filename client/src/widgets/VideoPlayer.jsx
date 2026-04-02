@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 
 export function VideoPlayer({ videoTrack, isSelf }) {
-    if (!isSelf) throw new Error("isSelf prop is required for VideoPlayer");
+    if (isSelf === undefined) throw new Error("isSelf prop is required for VideoPlayer");
 
     const videoRef = useRef();
 

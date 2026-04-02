@@ -1,7 +1,7 @@
 import { useRef, useEffect } from "react";
 
 export function AudioPlayer({ audioTrack, isSelf }) {
-    if (!isSelf) throw new Error("isSelf prop is required for AudioPlayer");
+    if (isSelf === undefined) throw new Error("isSelf prop is required for AudioPlayer");
 
     const audioRef = useRef();
 

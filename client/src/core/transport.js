@@ -39,6 +39,12 @@ export async function createTransports(device, signal) {
             await signal.socket.emit("connectTransport", {
                 transportId: recvTransport.id,
                 dtlsParameters
+            }, (response) => {
+                if (response.success) {
+                    callback();
+                } else {
+                    errback(new Error("Failed to connect transport: " + (response.error || "Unknown error")));
+                }
             });
 
             callback();

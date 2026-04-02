@@ -1,4 +1,4 @@
-const ANNOUNCED_IP = "127.0.0.1";
+const ANNOUNCED_IP = "172.20.10.3";
 
 export async function createWebRtcTransport(router) {
     return await router.createWebRtcTransport({

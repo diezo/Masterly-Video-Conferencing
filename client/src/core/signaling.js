@@ -2,25 +2,36 @@ import { io } from 'socket.io-client';
 
 export class Signaling {
     socket;
+    consume;
+    stopConsuming;
+    setMediaItems;
+    device;
 
-    constructor(url) {
+    constructor(url, consume, stopConsuming, setMediaItems) {
         this.socket = io(url);
+        this.consume = consume;
+        this.stopConsuming = stopConsuming;
+        this.setMediaItems = setMediaItems;
 
         this.socket.on("connect", () => {
             console.log("Connected to signaling server:", this.socket.id);
         });
 
         this.socket.on("newProducer", ({ producerId, kind }) => {
-            // add to dom
+            this.consume(producerId, kind, this.device, this.setMediaItems, this);
         });
 
         this.socket.on("producerClosed", ({ producerId }) => {
-            // remove from dom
+            this.stopConsuming(producerId, this.setMediaItems);
         });
 
         this.socket.on("disconnect", () => {
             console.log("Disconnected from signaling server.");
         });
+    }
+
+    setDevice(device) {
+        this.device = device;
     }
 
     connect() {

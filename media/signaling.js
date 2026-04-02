@@ -22,6 +22,12 @@ export class Signaling {
             // Handle disconnection
             socket.on("disconnect", () => {
                 console.log("User disconnected: ", socket.id);
+
+                for (const producer of this.peers.get(socket.id).producers) {
+                    producer.close();
+                    socket.broadcast.emit("producerClosed", { producerId: producer.id });
+                }
+
                 this.peers.delete(socket.id);
             });
 
@@ -120,9 +126,7 @@ export class Signaling {
                     producer.on("transportclose", () => {
                         peer.producers = peer.producers.filter(p => p.id !== producer.id);
                         producer.close();
-                    });
 
-                    producer.on("close", () => {
                         socket.broadcast.emit("producerClosed", { producerId: producer.id });
                     });
 
@@ -156,6 +160,68 @@ export class Signaling {
                 }
 
                 callback({ success: true, producers });
+            });
+
+            // Handle: Consume media
+            socket.on("consume", async ({ producerId, rtpCapabilities }, callback) => {
+                try {
+                    const peer = this.peers.get(socket.id);
+
+                    if (!peer) {
+                        return callback({ success: false, error: "Peer not found" });
+                    }
+
+                    if (!this.router.canConsume({ producerId, rtpCapabilities })) {
+                        return callback({ success: false, error: "Cannot consume this producer" });
+                    }
+
+                    const transport = peer.recvTransport;
+
+                    if (!transport) {
+                        return callback({ success: false, error: "Receive transport not found" });
+                    }
+
+                    const consumer = await transport.consume({ producerId, rtpCapabilities, paused: true });
+
+                    peer.consumers.push(consumer);
+
+                    consumer.on("transportclose", () => {
+                        peer.consumers = peer.consumers.filter(c => c.id !== consumer.id);
+                        consumer.close();
+                    });
+
+                    callback({
+                        success: true,
+                        id: consumer.id,
+                        kind: consumer.kind,
+                        rtpParameters: consumer.rtpParameters,
+                    });
+
+                } catch (error) {
+                    callback({ success: false, error: error.message });
+                }
+            });
+
+            // Handler: Resume consumer
+            socket.on("consumerResume", async ({ consumerId }, callback) => {
+                try {
+                    const peer = this.peers.get(socket.id);
+
+                    if (!peer) {
+                        return callback({ success: false, error: "Peer not found" });
+                    }
+
+                    const consumer = peer.consumers.find(c => c.id === consumerId);
+
+                    if (!consumer) {
+                        return callback({ success: false, error: "Consumer not found" });
+                    }
+
+                    await consumer.resume();
+                    callback({ success: true });
+                } catch (error) {
+                    callback({ success: false, error: error.message });
+                }
             });
         });
     }

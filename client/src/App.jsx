@@ -7,8 +7,13 @@ import { createTransports } from './core/transport';
 import { VideoPlayer } from './widgets/VideoPlayer';
 import { AudioPlayer } from './widgets/AudioPlayer';
 
+
+let sendTransport = null;
+let recvTransport = null;
+
+
 function addMediaItem(setMediaItems, id, videoTrack, audioTrack, isSelf) {
-    if (!isSelf) throw new Error("isSelf parameter is required for addMediaItem");
+    if (isSelf === undefined) throw new Error("isSelf parameter is required for addMediaItem");
 
     setMediaItems(prevItems => [...prevItems, { id, videoTrack, audioTrack, isSelf }]);
 }
@@ -25,17 +30,47 @@ async function startUserMedia(setMediaItems, id, sendTransport) {
     sendTransport.produce({ track: audioTrack });
 }
 
-function consume(producerId, kind) {
-    // todo: implement consuming media from other peers
-    // also maintain a consumers list locally
+async function consume(producerId, kind, device, setMediaItems, signal) {
+    console.log("Consuming '" + kind + "':", producerId);
+
+    const data = await new Promise(resolve => {
+        signal.socket.emit("consume", { producerId, rtpCapabilities: device.rtpCapabilities }, resolve);
+    })
+
+    const consumer = await recvTransport.consume({
+        id: data.id,
+        producerId: producerId,
+        kind: data.kind,
+        rtpParameters: data.rtpParameters,
+    });
+
+    addMediaItem(
+        setMediaItems,
+        producerId,
+        kind === "video" ? consumer.track : null,
+        kind === "audio" ? consumer.track : null,
+        false
+    );
+
+    // resume the consumer
+    signal.socket.emit("consumerResume", { consumerId: consumer.id }, (response) => {
+        if (!response.success) {
+            console.error("Failed to resume consumer:", response.error);
+        }
+    });
 }
 
-function fetchProducers(signal) {
+function stopConsuming(producerId, setMediaItems) {
+    console.log("Stopping consumption:", producerId);
+
+    setMediaItems(prevItems => prevItems.filter(item => item.id !== producerId));
+}
+
+function fetchProducers(signal, device, setMediaItems) {
     signal.socket.emit("getProducers", {}, (response) => {
         if (response.success) {
             response.producers.forEach(({ producerId, kind }) => {
-                console.log("Consuming '" + kind + "':", producerId);
-                consume(producerId, kind);
+                consume(producerId, kind, device, setMediaItems, signal);
             });
         } else {
             console.error("Failed to fetch producers:", response.error);
@@ -44,10 +79,12 @@ function fetchProducers(signal) {
 }
 
 async function start(device, signal, setMediaItems) {
-    const [sendTransport, recvTransport] = await createTransports(device, signal);
+    const [sendTransportTemp, recvTransportTemp] = await createTransports(device, signal);
+    sendTransport = sendTransportTemp;
+    recvTransport = recvTransportTemp;
 
-    startUserMedia(setMediaItems, signal.socket.id, sendTransport);
-    fetchProducers(signal);
+    await startUserMedia(setMediaItems, signal.socket.id, sendTransport);
+    fetchProducers(signal, device, setMediaItems);
 }
 
 function App() {
@@ -57,12 +94,16 @@ function App() {
     const [mediaItems, setMediaItems] = useState([]);
 
     useEffect(() => {
-        const signal = new Signaling("http://localhost:3000");
+        const signal = new Signaling("http://172.20.10.3:3000", consume, stopConsuming, setMediaItems);
         setSignal(signal);
 
         (async () => {
             await signal.connect();
-            setDevice(await initDevice(signal));
+
+            const deviceInstance = await initDevice(signal);
+
+            setDevice(deviceInstance);
+            signal.setDevice(deviceInstance);
         })();
 
         return () => {
@@ -76,15 +117,13 @@ function App() {
     }, [device, signal]);
 
     return (
-        <div>
-            <h3>Masterly Mediasoup</h3>
-
+        <div id="main">
             {mediaItems.map((item, index) => (
-                <div key={item.id}>
-                    <h4>{item.id}</h4>
-
-                    <VideoPlayer videoTrack={item.videoTrack} isSelf={item.isSelf} />
+                <div className="candidate-item" key={item.id} style={{ display: item.videoTrack === null ? 'none' : 'block' }}>
+                    <VideoPlayer videoTrack={item.videoTrack} isSelf={item.isSelf} />                    
                     <AudioPlayer audioTrack={item.audioTrack} isSelf={item.isSelf} />
+
+                    <h4>{item.id}</h4>
                 </div>
             ))}
         </div>
